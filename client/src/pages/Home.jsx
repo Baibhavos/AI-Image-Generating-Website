@@ -1,13 +1,54 @@
-import React, {useState, useEffect} from 'react';
-import {Loader, Card, FormField} from '../components';
+import React, { useState, useEffect } from 'react';
+import { Loader, Card, FormField } from '../components';
 
 const Home = () => {
   const [loading, setLoading] = useState(false);
   const [allPosts, setAllPosts] = useState(null);
-  const [searchText ,setSearchText] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [searchedResults, setSearchedResults] = useState(null);
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
-  const RenderCards = ({data, title}) => {
-    if(data?.length > 0 ) {
+
+  useEffect(() => {
+    const fetchPost = async () => {
+      setLoading(true);
+
+      try {
+        const res = await fetch("http://localhost:8080/api/v1/post", {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          setAllPosts(result.data.reverse());
+        }
+      } catch (error) {
+        alert(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
+
+    setSearchTimeout(
+      setTimeout(() => {
+        const searchresults = allPosts.filter((post) => post.name.toLowerCase().includes(searchText.toLowerCase())
+          || isHtmlElement.prompt.toLowerCase().includes(searchText.toLowerCase())
+        );
+
+        setSearchedResults(searchresults());
+      }, 500)
+    );
+  }
+
+  const RenderCards = ({ data, title }) => {
+    if (data?.length > 0) {
       return data.map((post) => <Card key={post._id} {...post} />)
     }
 
@@ -26,13 +67,20 @@ const Home = () => {
       </div>
 
       <div className="mt-16">
-        <FormField />
+        <FormField
+          labelName="Search posts"
+          type="text"
+          name="text"
+          placeholder="Search posts"
+          value={searchText}
+          handleChange={handleSearchChange}
+        />
       </div>
 
       <div className="mt-10">
         {loading ? (
           <div className="flex justify-center items-center"></div>
-        ): (
+        ) : (
           <>
             {searchText && (
               <h2 className="font-medium text-[#666e75] text-xl mb-3">
@@ -43,8 +91,8 @@ const Home = () => {
             <div className="grid lg:grid-cols-4 sm:grid-cols-3 xs:grid-cols-2">
               {searchText ? (
                 <RenderCards data={[]} title="No search results found" />
-              ): (
-                <RenderCards data={[]} title="No posts found" />
+              ) : (
+                <RenderCards data={allPosts} title="No posts found" />
               )}
             </div>
           </>
